@@ -1,0 +1,1384 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>コードネーム</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18212f;
+        --muted: #617086;
+        --surface: #ffffff;
+        --line: #d8dee8;
+        --table: #eef3ee;
+        --hidden: #f7f2e8;
+        --red: #c94545;
+        --red-soft: #f4d6d4;
+        --blue: #2f67b7;
+        --blue-soft: #d8e5f7;
+        --neutral: #a88b64;
+        --neutral-soft: #eadfcf;
+        --assassin: #20242d;
+        --assassin-soft: #cfd3db;
+        --focus: #21745d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(33, 116, 93, 0.08), transparent 24rem),
+          linear-gradient(135deg, #f6f8fb 0%, var(--table) 100%);
+        color: var(--ink);
+        font-family:
+          "Noto Sans JP",
+          "Hiragino Kaku Gothic ProN",
+          "Yu Gothic",
+          Meiryo,
+          system-ui,
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .app {
+        width: min(1180px, 100%);
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: 1.25rem;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1rem;
+      }
+
+      .title-block {
+        min-width: 0;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        line-height: 1.1;
+      }
+
+      .subtitle {
+        margin: 0.35rem 0 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+
+      .control-button {
+        min-height: 2.5rem;
+        padding: 0.55rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--ink);
+        cursor: pointer;
+        box-shadow: 0 2px 0 rgba(24, 33, 47, 0.06);
+        transition:
+          transform 140ms ease,
+          border-color 140ms ease,
+          background 140ms ease;
+      }
+
+      .control-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: #9fb0c7;
+      }
+
+      .control-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.58;
+      }
+
+      .control-button.primary {
+        border-color: #165f4d;
+        background: #21745d;
+        color: white;
+      }
+
+      .control-button[aria-pressed="true"] {
+        border-color: #9a6c23;
+        background: #fff2ca;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: stretch;
+        margin-bottom: 1rem;
+      }
+
+      .status-panel,
+      .score-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 10px 24px rgba(24, 33, 47, 0.08);
+      }
+
+      .status-panel {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+        padding: 0.8rem;
+      }
+
+      .turn-badge {
+        flex: 0 0 auto;
+        min-width: 5.7rem;
+        padding: 0.48rem 0.65rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .turn-badge.red {
+        background: var(--red);
+      }
+
+      .turn-badge.blue {
+        background: var(--blue);
+      }
+
+      .message {
+        min-width: 0;
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.45;
+      }
+
+      .message.win {
+        font-weight: 800;
+      }
+
+      .score-panel {
+        display: grid;
+        grid-template-columns: repeat(4, auto);
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem;
+      }
+
+      .score-item {
+        display: grid;
+        gap: 0.15rem;
+        min-width: 4.5rem;
+      }
+
+      .score-label {
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .score-value {
+        font-weight: 800;
+        font-size: 1.1rem;
+      }
+
+      .score-value.red {
+        color: var(--red);
+      }
+
+      .score-value.blue {
+        color: var(--blue);
+      }
+
+      .board-shell {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #c9d3df;
+        border-radius: 8px;
+        background:
+          linear-gradient(90deg, rgba(33, 116, 93, 0.08) 1px, transparent 1px),
+          linear-gradient(rgba(47, 103, 183, 0.08) 1px, transparent 1px),
+          #dfe8e1;
+        background-size: 2.2rem 2.2rem;
+        padding: 0.8rem;
+        box-shadow: 0 16px 34px rgba(24, 33, 47, 0.14);
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.62rem;
+      }
+
+      .card {
+        position: relative;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        min-width: 0;
+        min-height: 6.1rem;
+        aspect-ratio: 1.26;
+        padding: 0.52rem;
+        border: 2px solid #d2c3a9;
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.18)),
+          var(--hidden);
+        color: var(--ink);
+        cursor: pointer;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+          0 5px 0 #c9b68e,
+          0 10px 16px rgba(24, 33, 47, 0.14);
+        transition:
+          transform 140ms ease,
+          box-shadow 140ms ease,
+          border-color 140ms ease,
+          background 140ms ease;
+      }
+
+      .card:hover:not(:disabled) {
+        transform: translateY(-2px);
+        border-color: #b19562;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+          0 7px 0 #c9b68e,
+          0 14px 20px rgba(24, 33, 47, 0.16);
+      }
+
+      .card:focus-visible,
+      .control-button:focus-visible {
+        outline: 3px solid rgba(33, 116, 93, 0.35);
+        outline-offset: 3px;
+      }
+
+      .card:disabled {
+        cursor: default;
+      }
+
+      .card-word {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        color: inherit;
+        font-size: 1.2rem;
+        font-weight: 850;
+        line-height: 1.16;
+        text-align: center;
+      }
+
+      .role-chip {
+        position: absolute;
+        top: 0.35rem;
+        left: 0.35rem;
+        max-width: calc(100% - 0.7rem);
+        padding: 0.16rem 0.35rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.74);
+        color: var(--ink);
+        font-size: 0.68rem;
+        font-weight: 800;
+        line-height: 1.1;
+        overflow-wrap: anywhere;
+      }
+
+      .card.spy-red {
+        border-color: var(--red);
+        background: var(--red-soft);
+      }
+
+      .card.spy-blue {
+        border-color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .card.spy-neutral {
+        border-color: var(--neutral);
+        background: var(--neutral-soft);
+      }
+
+      .card.spy-assassin {
+        border-color: var(--assassin);
+        background: var(--assassin-soft);
+      }
+
+      .card.revealed {
+        transform: translateY(3px);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+          0 2px 0 rgba(24, 33, 47, 0.18);
+      }
+
+      .card.revealed-red {
+        border-color: #9f3030;
+        background: var(--red);
+        color: white;
+      }
+
+      .card.revealed-blue {
+        border-color: #204d8d;
+        background: var(--blue);
+        color: white;
+      }
+
+      .card.revealed-neutral {
+        border-color: #866a43;
+        background: var(--neutral);
+        color: white;
+      }
+
+      .card.revealed-assassin {
+        border-color: #080a0d;
+        background: var(--assassin);
+        color: white;
+      }
+
+      @media (max-width: 880px) {
+        .topbar,
+        .status-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
+
+        .score-panel {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 620px) {
+        .app {
+          padding: 0.7rem;
+        }
+
+        h1 {
+          font-size: 1.35rem;
+        }
+
+        .subtitle {
+          font-size: 0.84rem;
+        }
+
+        .control-button {
+          flex: 1 1 9rem;
+          min-height: 2.7rem;
+          padding: 0.5rem 0.62rem;
+          font-size: 0.86rem;
+        }
+
+        .status-panel {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .turn-badge {
+          min-width: 0;
+        }
+
+        .message {
+          font-size: 0.9rem;
+        }
+
+        .score-panel {
+          gap: 0.5rem;
+          padding: 0.55rem;
+        }
+
+        .score-item {
+          min-width: 0;
+        }
+
+        .score-label {
+          font-size: 0.65rem;
+        }
+
+        .score-value {
+          font-size: 0.94rem;
+        }
+
+        .board-shell {
+          padding: 0.42rem;
+          background-size: 1.6rem 1.6rem;
+        }
+
+        .board {
+          gap: 0.34rem;
+        }
+
+        .card {
+          min-height: 4.35rem;
+          padding: 0.34rem;
+          border-width: 1px;
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.58),
+            0 3px 0 #c9b68e,
+            0 7px 10px rgba(24, 33, 47, 0.13);
+        }
+
+        .card-word {
+          font-size: 0.78rem;
+        }
+
+        .role-chip {
+          top: 0.2rem;
+          left: 0.2rem;
+          max-width: calc(100% - 0.4rem);
+          padding: 0.1rem 0.22rem;
+          font-size: 0.52rem;
+        }
+      }
+
+      @media (max-width: 390px) {
+        .card {
+          min-height: 3.8rem;
+          padding: 0.24rem;
+        }
+
+        .card-word {
+          font-size: 0.68rem;
+        }
+      }
+
+      :root {
+        color-scheme: dark;
+        --ink: #eef3ef;
+        --muted: #8fa19a;
+        --surface: rgba(9, 15, 18, 0.9);
+        --line: rgba(182, 196, 181, 0.18);
+        --table: #111a18;
+        --hidden: #d9c59b;
+        --red: #d44c4c;
+        --red-soft: #40171a;
+        --blue: #4f83d6;
+        --blue-soft: #142947;
+        --neutral: #a9834f;
+        --neutral-soft: #33291f;
+        --assassin: #07090d;
+        --assassin-soft: #1b2028;
+        --focus: #9de3bd;
+        --brass: #c49a53;
+        --paper-ink: #15120d;
+      }
+
+      body {
+        position: relative;
+        overflow-x: hidden;
+        background:
+          repeating-linear-gradient(90deg, rgba(157, 227, 189, 0.04) 0 1px, transparent 1px 4.8rem),
+          repeating-linear-gradient(0deg, rgba(157, 227, 189, 0.032) 0 1px, transparent 1px 4.8rem),
+          linear-gradient(132deg, #05070a 0%, #101719 45%, #070b10 100%);
+        color: var(--ink);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          repeating-linear-gradient(116deg, transparent 0 1.35rem, rgba(255, 255, 255, 0.026) 1.35rem 1.42rem, transparent 1.42rem 3.2rem),
+          linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.42));
+      }
+
+      .app {
+        position: relative;
+        z-index: 1;
+        padding-top: 1.45rem;
+      }
+
+      .app::before {
+        content: "CLASSIFIED";
+        position: fixed;
+        top: 1.1rem;
+        right: 1rem;
+        z-index: -1;
+        color: rgba(196, 154, 83, 0.11);
+        font-size: 5.2rem;
+        font-weight: 900;
+        line-height: 1;
+        transform: rotate(-7deg);
+        white-space: nowrap;
+      }
+
+      .topbar {
+        position: relative;
+        align-items: center;
+        padding: 0.95rem;
+        border: 1px solid rgba(196, 154, 83, 0.22);
+        border-radius: 8px;
+        background:
+          linear-gradient(90deg, rgba(196, 154, 83, 0.08), rgba(157, 227, 189, 0.04)),
+          rgba(7, 12, 15, 0.78);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.28);
+      }
+
+      .topbar::after {
+        content: "";
+        position: absolute;
+        left: 0.95rem;
+        right: 0.95rem;
+        bottom: -1px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(157, 227, 189, 0.65), transparent);
+      }
+
+      .classification {
+        width: fit-content;
+        margin-bottom: 0.35rem;
+        padding: 0.16rem 0.45rem;
+        border: 1px solid rgba(196, 154, 83, 0.56);
+        border-radius: 5px;
+        color: #f0c875;
+        background: rgba(196, 154, 83, 0.08);
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      h1 {
+        color: #f7f1e6;
+        font-size: 1.92rem;
+        font-weight: 900;
+        text-shadow: 0 0 18px rgba(157, 227, 189, 0.22);
+      }
+
+      .subtitle {
+        color: var(--muted);
+      }
+
+      .control-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        border-color: rgba(182, 196, 181, 0.24);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01)),
+          #10171d;
+        color: #ecf3ee;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+          0 3px 0 rgba(0, 0, 0, 0.58),
+          0 10px 20px rgba(0, 0, 0, 0.25);
+      }
+
+      .button-icon {
+        width: 1.05rem;
+        height: 1.05rem;
+        flex: 0 0 auto;
+      }
+
+      .control-button:hover:not(:disabled) {
+        border-color: rgba(157, 227, 189, 0.58);
+        background:
+          linear-gradient(180deg, rgba(157, 227, 189, 0.12), rgba(255, 255, 255, 0.018)),
+          #121d22;
+      }
+
+      .control-button.primary {
+        border-color: rgba(157, 227, 189, 0.6);
+        background:
+          linear-gradient(180deg, rgba(157, 227, 189, 0.32), rgba(38, 110, 78, 0.22)),
+          #113125;
+        color: #f5fff9;
+      }
+
+      .control-button[aria-pressed="true"] {
+        border-color: rgba(240, 200, 117, 0.75);
+        background:
+          linear-gradient(180deg, rgba(240, 200, 117, 0.24), rgba(44, 33, 17, 0.26)),
+          #1b1710;
+        color: #fff1c8;
+      }
+
+      .status-panel,
+      .score-panel {
+        border-color: rgba(182, 196, 181, 0.2);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012)),
+          rgba(8, 14, 18, 0.86);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+          0 12px 30px rgba(0, 0, 0, 0.26);
+      }
+
+      .turn-badge {
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 18px rgba(255, 255, 255, 0.06);
+      }
+
+      .turn-badge.red {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.12)),
+          var(--red);
+      }
+
+      .turn-badge.blue {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.12)),
+          var(--blue);
+      }
+
+      .message {
+        color: #dbe5df;
+      }
+
+      .message.win {
+        color: #ffe7a6;
+        text-shadow: 0 0 15px rgba(240, 200, 117, 0.26);
+      }
+
+      .score-label {
+        color: var(--muted);
+      }
+
+      .score-value {
+        color: #eaf1ec;
+      }
+
+      .score-value.red {
+        color: #ff7a72;
+      }
+
+      .score-value.blue {
+        color: #82adff;
+      }
+
+      .board-shell {
+        border-color: rgba(196, 154, 83, 0.28);
+        background:
+          linear-gradient(90deg, rgba(157, 227, 189, 0.055) 1px, transparent 1px),
+          linear-gradient(rgba(157, 227, 189, 0.045) 1px, transparent 1px),
+          repeating-linear-gradient(135deg, rgba(196, 154, 83, 0.03) 0 0.55rem, transparent 0.55rem 1.1rem),
+          #0b1210;
+        background-size: 2.35rem 2.35rem, 2.35rem 2.35rem, auto, auto;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+          inset 0 0 70px rgba(0, 0, 0, 0.38),
+          0 22px 48px rgba(0, 0, 0, 0.42);
+      }
+
+      .board-shell::before,
+      .board-shell::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+      }
+
+      .board-shell::before {
+        inset: 0.55rem;
+        border: 1px solid rgba(157, 227, 189, 0.11);
+        border-radius: 6px;
+      }
+
+      .board-shell::after {
+        top: 0;
+        right: 12%;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(transparent, rgba(240, 200, 117, 0.55), transparent);
+      }
+
+      .board {
+        position: relative;
+        z-index: 1;
+      }
+
+      .card {
+        isolation: isolate;
+        border-color: #9f8550;
+        background:
+          linear-gradient(180deg, rgba(255, 247, 222, 0.92), rgba(213, 190, 143, 0.9)),
+          var(--hidden);
+        color: var(--paper-ink);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+          inset 0 -16px 26px rgba(71, 46, 14, 0.12),
+          0 5px 0 #79623b,
+          0 13px 24px rgba(0, 0, 0, 0.36);
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        left: 0.52rem;
+        right: 0.52rem;
+        bottom: 0.48rem;
+        z-index: -1;
+        height: 0.38rem;
+        border-radius: 2px;
+        background:
+          linear-gradient(90deg, rgba(18, 14, 9, 0.36) 0 22%, transparent 22% 31%, rgba(18, 14, 9, 0.26) 31% 58%, transparent 58% 66%, rgba(18, 14, 9, 0.3) 66% 100%);
+        opacity: 0.46;
+      }
+
+      .card::after {
+        content: "";
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 0.85rem;
+        height: 0.85rem;
+        border-top: 1px solid rgba(21, 18, 13, 0.42);
+        border-right: 1px solid rgba(21, 18, 13, 0.42);
+        opacity: 0.7;
+      }
+
+      .card:hover:not(:disabled) {
+        border-color: #d2ae67;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+          inset 0 -16px 26px rgba(71, 46, 14, 0.12),
+          0 7px 0 #79623b,
+          0 18px 28px rgba(0, 0, 0, 0.44),
+          0 0 22px rgba(196, 154, 83, 0.14);
+      }
+
+      .card:focus-visible,
+      .control-button:focus-visible {
+        outline: 3px solid rgba(157, 227, 189, 0.42);
+      }
+
+      .card-word {
+        position: relative;
+        z-index: 1;
+        font-weight: 900;
+      }
+
+      .role-chip {
+        z-index: 2;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(5, 7, 10, 0.72);
+        color: #f6f0e2;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+      }
+
+      .card.spy-red {
+        border-color: #e15f5f;
+        background:
+          linear-gradient(180deg, rgba(212, 76, 76, 0.32), rgba(64, 23, 26, 0.92)),
+          var(--red-soft);
+        color: #fff1ee;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 5px 0 #421719,
+          0 13px 24px rgba(0, 0, 0, 0.36),
+          0 0 24px rgba(212, 76, 76, 0.2);
+      }
+
+      .card.spy-blue {
+        border-color: #78a6f3;
+        background:
+          linear-gradient(180deg, rgba(79, 131, 214, 0.34), rgba(20, 41, 71, 0.93)),
+          var(--blue-soft);
+        color: #eef5ff;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 5px 0 #142947,
+          0 13px 24px rgba(0, 0, 0, 0.36),
+          0 0 24px rgba(79, 131, 214, 0.2);
+      }
+
+      .card.spy-neutral {
+        border-color: #c49a53;
+        background:
+          linear-gradient(180deg, rgba(196, 154, 83, 0.3), rgba(51, 41, 31, 0.94)),
+          var(--neutral-soft);
+        color: #fff4df;
+      }
+
+      .card.spy-assassin {
+        border-color: #a7afb8;
+        background:
+          linear-gradient(180deg, rgba(167, 175, 184, 0.16), rgba(4, 5, 7, 0.96)),
+          var(--assassin-soft);
+        color: #f5f7fa;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+          0 5px 0 #030405,
+          0 13px 24px rgba(0, 0, 0, 0.42),
+          0 0 26px rgba(255, 255, 255, 0.08);
+      }
+
+      .card.revealed {
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.09),
+          inset 0 0 34px rgba(0, 0, 0, 0.22),
+          0 2px 0 rgba(0, 0, 0, 0.55);
+      }
+
+      .card.revealed::before {
+        opacity: 0.18;
+      }
+
+      .card.revealed-red {
+        border-color: #ff7a72;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.24)),
+          #b83838;
+        color: white;
+      }
+
+      .card.revealed-blue {
+        border-color: #82adff;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.24)),
+          #2d5ca4;
+        color: white;
+      }
+
+      .card.revealed-neutral {
+        border-color: #d0aa66;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.25)),
+          #7b613d;
+        color: white;
+      }
+
+      .card.revealed-assassin {
+        border-color: #e7edf5;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(0, 0, 0, 0.4)),
+          #050609;
+        color: white;
+      }
+
+      @media (max-width: 880px) {
+        .topbar {
+          align-items: start;
+        }
+
+        .actions {
+          justify-content: stretch;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .app {
+          padding: 0.65rem;
+          padding-top: 0.75rem;
+        }
+
+        .app::before {
+          top: 0.8rem;
+          right: -1.2rem;
+          font-size: 3.4rem;
+        }
+
+        .topbar {
+          padding: 0.72rem;
+        }
+
+        .classification {
+          font-size: 0.64rem;
+        }
+
+        h1 {
+          font-size: 1.42rem;
+        }
+
+        .control-button {
+          gap: 0.36rem;
+          font-size: 0.82rem;
+        }
+
+        .button-icon {
+          width: 0.96rem;
+          height: 0.96rem;
+        }
+
+        .board-shell {
+          background-size: 1.55rem 1.55rem, 1.55rem 1.55rem, auto, auto;
+        }
+
+        .board-shell::before {
+          inset: 0.3rem;
+        }
+
+        .card {
+          min-height: 4.3rem;
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.36),
+            inset 0 -10px 18px rgba(71, 46, 14, 0.12),
+            0 3px 0 #79623b,
+            0 8px 14px rgba(0, 0, 0, 0.36);
+        }
+
+        .card::before {
+          left: 0.28rem;
+          right: 0.28rem;
+          bottom: 0.28rem;
+          height: 0.25rem;
+        }
+
+        .card::after {
+          top: 0.28rem;
+          right: 0.28rem;
+          width: 0.55rem;
+          height: 0.55rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useMemo, useState } = React;
+
+      const WORDS = [
+        "山",
+        "海",
+        "空",
+        "星",
+        "月",
+        "太陽",
+        "雲",
+        "雨",
+        "雪",
+        "風",
+        "森",
+        "川",
+        "湖",
+        "島",
+        "砂漠",
+        "花",
+        "木",
+        "鳥",
+        "犬",
+        "猫",
+        "馬",
+        "魚",
+        "龍",
+        "ロボット",
+        "忍者",
+        "侍",
+        "城",
+        "神社",
+        "駅",
+        "学校",
+        "病院",
+        "図書館",
+        "市場",
+        "銀行",
+        "空港",
+        "港",
+        "橋",
+        "道路",
+        "電車",
+        "船",
+        "飛行機",
+        "車",
+        "自転車",
+        "鍵",
+        "手紙",
+        "時計",
+        "電話",
+        "新聞",
+        "本",
+        "写真",
+        "地図",
+        "宝石",
+        "王冠",
+        "剣",
+        "盾",
+        "マスク",
+        "薬",
+        "パン",
+        "寿司",
+        "ラーメン",
+        "お茶",
+        "りんご",
+        "みかん",
+        "チョコ",
+        "映画",
+        "音楽",
+        "踊り",
+        "祭り",
+        "花火",
+        "野球",
+        "サッカー",
+        "将棋",
+        "ゲーム",
+        "魔法",
+        "探偵",
+        "秘密",
+        "影",
+        "光",
+        "夢",
+        "記憶",
+        "未来",
+        "過去",
+        "時間",
+        "数字",
+        "言葉",
+        "色",
+        "音",
+        "声",
+        "心",
+        "力",
+        "速度",
+        "温度",
+        "氷",
+        "火",
+        "電気",
+        "宇宙",
+        "惑星",
+        "衛星",
+        "博士",
+        "王様",
+      ];
+
+      const ROLE_POOL = [
+        ...Array(9).fill("red"),
+        ...Array(8).fill("blue"),
+        ...Array(7).fill("neutral"),
+        "assassin",
+      ];
+
+      const ROLES = {
+        red: {
+          label: "赤",
+          fullLabel: "赤チーム",
+          spyClass: "spy-red",
+          revealedClass: "revealed-red",
+        },
+        blue: {
+          label: "青",
+          fullLabel: "青チーム",
+          spyClass: "spy-blue",
+          revealedClass: "revealed-blue",
+        },
+        neutral: {
+          label: "市民",
+          fullLabel: "市民",
+          spyClass: "spy-neutral",
+          revealedClass: "revealed-neutral",
+        },
+        assassin: {
+          label: "暗殺者",
+          fullLabel: "暗殺者",
+          spyClass: "spy-assassin",
+          revealedClass: "revealed-assassin",
+        },
+      };
+
+      const TEAM_TARGETS = {
+        red: 9,
+        blue: 8,
+      };
+
+      function shuffle(items) {
+        const copied = [...items];
+        for (let index = copied.length - 1; index > 0; index -= 1) {
+          const randomIndex = Math.floor(Math.random() * (index + 1));
+          [copied[index], copied[randomIndex]] = [copied[randomIndex], copied[index]];
+        }
+        return copied;
+      }
+
+      function createCards() {
+        const words = shuffle(WORDS).slice(0, 25);
+        const roles = shuffle(ROLE_POOL);
+        const gameId = Date.now();
+
+        return words.map((word, index) => ({
+          id: `${gameId}-${index}-${word}`,
+          word,
+          role: roles[index],
+          revealed: false,
+        }));
+      }
+
+      function countRemaining(cards, role) {
+        return cards.filter((card) => card.role === role && !card.revealed).length;
+      }
+
+      function getWinningTeam(cards) {
+        if (countRemaining(cards, "red") === 0) {
+          return "red";
+        }
+
+        if (countRemaining(cards, "blue") === 0) {
+          return "blue";
+        }
+
+        return null;
+      }
+
+      function getOpponent(team) {
+        return team === "red" ? "blue" : "red";
+      }
+
+      function Icon({ name }) {
+        const commonProps = {
+          className: "button-icon",
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: "2",
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          "aria-hidden": "true",
+        };
+
+        if (name === "refresh") {
+          return (
+            <svg {...commonProps}>
+              <path d="M20 6v5h-5" />
+              <path d="M4 18v-5h5" />
+              <path d="M18.5 9A7 7 0 0 0 6.1 6.1L4 8" />
+              <path d="M5.5 15A7 7 0 0 0 17.9 17.9L20 16" />
+            </svg>
+          );
+        }
+
+        if (name === "eyeOff") {
+          return (
+            <svg {...commonProps}>
+              <path d="M3 3l18 18" />
+              <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
+              <path d="M9.5 5.3A9.7 9.7 0 0 1 12 5c5 0 8.5 4.2 10 7a16.2 16.2 0 0 1-3.1 4" />
+              <path d="M6.6 6.7A16.4 16.4 0 0 0 2 12c1.5 2.8 5 7 10 7a9.6 9.6 0 0 0 4.4-1.1" />
+            </svg>
+          );
+        }
+
+        if (name === "skip") {
+          return (
+            <svg {...commonProps}>
+              <path d="M5 4l8 8-8 8V4z" />
+              <path d="M13 5l7 7-7 7" />
+            </svg>
+          );
+        }
+
+        return (
+          <svg {...commonProps}>
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        );
+      }
+
+      function App() {
+        const [cards, setCards] = useState(() => createCards());
+        const [spymaster, setSpymaster] = useState(false);
+        const [activeTeam, setActiveTeam] = useState("red");
+        const [winner, setWinner] = useState(null);
+        const [message, setMessage] = useState("赤チームから開始");
+
+        const remaining = useMemo(
+          () => ({
+            red: countRemaining(cards, "red"),
+            blue: countRemaining(cards, "blue"),
+            neutral: countRemaining(cards, "neutral"),
+            assassin: countRemaining(cards, "assassin"),
+          }),
+          [cards],
+        );
+
+        function startNewGame() {
+          setCards(createCards());
+          setSpymaster(false);
+          setActiveTeam("red");
+          setWinner(null);
+          setMessage("新しい盤面: 赤チームから開始");
+        }
+
+        function passTurn() {
+          if (winner) {
+            return;
+          }
+
+          const nextTeam = getOpponent(activeTeam);
+          setActiveTeam(nextTeam);
+          setMessage(`${ROLES[nextTeam].fullLabel}の番`);
+        }
+
+        function revealCard(cardId) {
+          if (winner) {
+            return;
+          }
+
+          const selected = cards.find((card) => card.id === cardId);
+          if (!selected || selected.revealed) {
+            return;
+          }
+
+          const nextCards = cards.map((card) =>
+            card.id === cardId ? { ...card, revealed: true } : card,
+          );
+
+          setCards(nextCards);
+
+          if (selected.role === "assassin") {
+            const winningTeam = getOpponent(activeTeam);
+            setWinner(winningTeam);
+            setMessage(`暗殺者を引きました。${ROLES[winningTeam].fullLabel}の勝利`);
+            return;
+          }
+
+          const winningTeam = getWinningTeam(nextCards);
+          if (winningTeam) {
+            setWinner(winningTeam);
+            setMessage(`${ROLES[winningTeam].fullLabel}の勝利`);
+            return;
+          }
+
+          if (selected.role === activeTeam) {
+            setMessage(`${ROLES[activeTeam].fullLabel}のエージェントを発見`);
+            return;
+          }
+
+          const nextTeam = getOpponent(activeTeam);
+          setActiveTeam(nextTeam);
+
+          if (selected.role === "neutral") {
+            setMessage(`市民でした。${ROLES[nextTeam].fullLabel}の番`);
+          } else {
+            setMessage(`${ROLES[selected.role].fullLabel}のエージェントでした。${ROLES[nextTeam].fullLabel}の番`);
+          }
+        }
+
+        function getCardClass(card) {
+          const classes = ["card"];
+
+          if (spymaster && !card.revealed) {
+            classes.push(ROLES[card.role].spyClass);
+          }
+
+          if (card.revealed) {
+            classes.push("revealed", ROLES[card.role].revealedClass);
+          }
+
+          return classes.join(" ");
+        }
+
+        return (
+          <main className="app">
+            <section className="topbar" aria-label="ゲーム操作">
+              <div className="title-block">
+                <div className="classification">CLASSIFIED / NIGHT OPS</div>
+                <h1>コードネーム</h1>
+                <p className="subtitle">TOKYO FIELD OFFICE</p>
+              </div>
+
+              <div className="actions">
+                <button className="control-button primary" type="button" onClick={startNewGame} title="新規ゲーム">
+                  <Icon name="refresh" />
+                  <span>新規ゲーム</span>
+                </button>
+                <button
+                  className="control-button"
+                  type="button"
+                  aria-pressed={spymaster}
+                  onClick={() => setSpymaster((current) => !current)}
+                  title="スパイマスター表示切替"
+                >
+                  <Icon name={spymaster ? "eyeOff" : "eye"} />
+                  <span>スパイマスター {spymaster ? "ON" : "OFF"}</span>
+                </button>
+                <button
+                  className="control-button"
+                  type="button"
+                  onClick={passTurn}
+                  disabled={Boolean(winner)}
+                  title="手番交代"
+                >
+                  <Icon name="skip" />
+                  <span>手番交代</span>
+                </button>
+              </div>
+            </section>
+
+            <section className="status-grid" aria-label="ゲーム状況">
+              <div className="status-panel">
+                <div className={`turn-badge ${activeTeam}`}>
+                  {winner ? "終了" : `${ROLES[activeTeam].label}の番`}
+                </div>
+                <p className={`message ${winner ? "win" : ""}`}>{message}</p>
+              </div>
+
+              <div className="score-panel" aria-label="残り枚数">
+                <div className="score-item">
+                  <span className="score-label">赤</span>
+                  <span className="score-value red">{remaining.red}</span>
+                </div>
+                <div className="score-item">
+                  <span className="score-label">青</span>
+                  <span className="score-value blue">{remaining.blue}</span>
+                </div>
+                <div className="score-item">
+                  <span className="score-label">市民</span>
+                  <span className="score-value">{remaining.neutral}</span>
+                </div>
+                <div className="score-item">
+                  <span className="score-label">暗殺者</span>
+                  <span className="score-value">{remaining.assassin}</span>
+                </div>
+              </div>
+            </section>
+
+            <section className="board-shell" aria-label="カード盤面">
+              <div className="board">
+                {cards.map((card) => (
+                  <button
+                    key={card.id}
+                    type="button"
+                    className={getCardClass(card)}
+                    onClick={() => revealCard(card.id)}
+                    disabled={card.revealed || Boolean(winner)}
+                    aria-label={`${card.word}: ${card.revealed || spymaster ? ROLES[card.role].fullLabel : "未公開"}`}
+                  >
+                    {(spymaster || card.revealed) && (
+                      <span className="role-chip">{ROLES[card.role].label}</span>
+                    )}
+                    <span className="card-word">{card.word}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </main>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
